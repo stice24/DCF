@@ -1,0 +1,95 @@
+import org.apache.poi.ss.usermodel.*;
+import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BetaCalculator {
+
+    private final String excelFilePath;
+    private final int portfolioPriceColumnIndex; 
+    private final int marketIndexPriceColumnIndex; 
+
+    public BetaCalculator(String excelFilePath, int portfolioPriceColumnIndex, int marketIndexPriceColumnIndex) {
+        this.excelFilePath = excelFilePath;
+        this.portfolioPriceColumnIndex = portfolioPriceColumnIndex;
+        this.marketIndexPriceColumnIndex = marketIndexPriceColumnIndex;
+    }
+
+    public double calculateBeta() throws Exception {
+        List<Double> portfolioReturns = new ArrayList<>();
+        List<Double> marketReturns = new ArrayList<>();
+        
+        FileInputStream fileInputStream = new FileInputStream(excelFilePath);
+        Workbook workbook = new XSSFWorkbook(fileInputStream);
+        Sheet sheet = workbook.getSheetAt(0); 
+
+        // Skipping the first row (assuming it's the header)
+        boolean firstRow = true;
+        for (Row row : sheet) {
+            if (firstRow) {
+                firstRow = false;
+                continue;
+            }
+            Cell portfolioCell = row.getCell(portfolioPriceColumnIndex);
+            Cell marketCell = row.getCell(marketIndexPriceColumnIndex);
+
+            if (portfolioCell == null || marketCell == null || 
+                portfolioCell.getCellType() != CellType.NUMERIC ||
+                marketCell.getCellType() != CellType.NUMERIC) {
+                break; // Stop reading if a non-numeric cell is encountered
+            }
+            
+            // Assuming daily returns; adjust as per your data
+            if (row.getRowNum() > 1) {
+                Row previousRow = sheet.getRow(row.getRowNum() - 1);
+                double previousPortfolioPrice = previousRow.getCell(portfolioPriceColumnIndex).getNumericCellValue();
+                double previousMarketPrice = previousRow.getCell(marketIndexPriceColumnIndex).getNumericCellValue();
+                double portfolioReturn = (portfolioCell.getNumericCellValue() - previousPortfolioPrice) / previousPortfolioPrice;
+                double marketReturn = (marketCell.getNumericCellValue() - previousMarketPrice) / previousMarketPrice;
+
+                portfolioReturns.add(portfolioReturn);
+                marketReturns.add(marketReturn);
+            }
+        }
+
+        workbook.close();
+        fileInputStream.close();
+
+        return calculateCovariance(portfolioReturns, marketReturns) / calculateVariance(marketReturns);
+    }
+
+    private double calculateCovariance(List<Double> x, List<Double> y) {
+        double xMean = x.stream().mapToDouble(a -> a).average().orElse(0.0);
+        double yMean = y.stream().mapToDouble(a -> a).average().orElse(0.0);
+        double sum = 0.0;
+        for (int i = 0; i < x.size(); i++) {
+            sum += (x.get(i) - xMean) * (y.get(i) - yMean);
+        }
+        return sum / (x.size() - 1);
+    }
+
+    private double calculateVariance(List<Double> data) {
+        double mean = data.stream().mapToDouble(a -> a).average().orElse(0.0);
+        double sum = 0.0;
+        for (double a : data) {
+            sum += Math.pow(a - mean, 2);
+        }
+        return sum / (data.size() - 1);
+    }
+}
+
+public class PortfolioAnalysisApp {
+    public static void main(String[] args) {
+        try {
+            String excelFilePath = "path/to/your/excel/file.xlsx";
+            int portfolioPriceColumnIndex = 1; 
+            int marketIndexPriceColumnIndex = 2; 
+
+            BetaCalculator betaCalculator = new BetaCalculator(excelFilePath, portfolioPriceColumnIndex, marketIndexPriceColumnIndex);
+            double beta = betaCalculator.calculateBeta();
+            System.out.println("Beta of Portfolio: " + beta);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
