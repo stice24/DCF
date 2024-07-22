@@ -1,0 +1,71 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class RiskManagementTool {
+
+    /**
+     * Calculates the standard deviation of portfolio returns.
+     *
+     * @param historicalPrices List of historical prices.
+     * @return The standard deviation of returns.
+     */
+    public static double performRiskCalculation(List<Double> historicalPrices) {
+        List<Double> dailyReturns = calculateDailyReturns(historicalPrices);
+        double meanReturn = calculateMean(dailyReturns);
+        return calculateStandardDeviation(dailyReturns, meanReturn);
+    }
+
+    /**
+     * Calculates daily returns from historical prices.
+     *
+     * @param historicalPrices List of historical prices.
+     * @return List of daily returns.
+     */
+    private static List<Double> calculateDailyReturns(List<Double> historicalPrices) {
+        List<Double> dailyReturns = new ArrayList<>();
+
+        for (int i = 1; i < historicalPrices.size(); i++) {
+            double previousPrice = historicalPrices.get(i - 1);
+            double currentPrice = historicalPrices.get(i);
+            double dailyReturn = (currentPrice - previousPrice) / previousPrice;
+            dailyReturns.add(dailyReturn);
+        }
+
+        return dailyReturns;
+    }
+
+    /**
+     * Calculates the mean of given values.
+     *
+     * @param values List of values.
+     * @return The mean.
+     */
+    private static double calculateMean(List<Double> values) {
+        double sum = 0;
+        for (double value : values) {
+            sum += value;
+        }
+        return values.size() == 0 ? 0 : sum / values.size();
+    }
+
+    /**
+     * Calculates the standard deviation of given values.
+     *
+     * @param values List of values.
+     * @param mean The mean of the values.
+     * @return The standard deviation.
+     */
+    private static double calculateStandardDeviation(List<Double> values, double mean) {
+        double sum = 0;
+        for (double value : values) {
+            sum += Math.pow(value - mean, 2);
+        }
+        return Math.sqrt(sum / (values.size() - 1));  // Sample standard deviation
+    }
+
+    public static void main(String[] args) {
+        List<Double> historicalPrices = Arrays.asList(100.0, 101.0, 102.0, 100.5, 99.0, 98.0);  // Example data
+        double standardDeviation = performRiskCalculation(historicalPrices);
+        System.out.println("Standard Deviation of Portfolio Returns: " + standardDeviation);
+    }
+}
