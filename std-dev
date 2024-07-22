@@ -1,0 +1,50 @@
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class StandardDeviationCalculator {
+
+    private final String excelFilePath;
+    private final int priceColumnIndex; // Column index where the prices are located
+
+    public StandardDeviationCalculator(String excelFilePath, int priceColumnIndex) {
+        this.excelFilePath = excelFilePath;
+        this.priceColumnIndex = priceColumnIndex;
+    }
+
+    public double calculateStandardDeviation() throws Exception {
+        List<Double> prices = readPricesFromExcel();
+        return calculateStdDev(prices);
+    }
+
+    private List<Double> readPricesFromExcel() throws Exception {
+        List<Double> prices = new ArrayList<>();
+        FileInputStream fileInputStream = new FileInputStream(excelFilePath);
+        Workbook workbook = new XSSFWorkbook(fileInputStream);
+        Sheet sheet = workbook.getSheetAt(0); // assuming data is in the first sheet
+
+        for (Row row : sheet) {
+            Cell cell = row.getCell(priceColumnIndex);
+            if (cell == null || cell.getCellType() != Cell.CELL_TYPE_NUMERIC) {
+                break; // Stop reading if a non-numeric cell is encountered
+            }
+            prices.add(cell.getNumericCellValue());
+        }
+
+        workbook.close();
+        fileInputStream.close();
+        return prices;
+    }
+
+    private double calculateStdDev(List<Double> prices) {
+        double mean = prices.stream().mapToDouble(d -> d).average().orElse(0.0);
+        double variance = prices.stream().mapToDouble(d -> Math.pow(d - mean, 2)).average().orElse(0.0);
+        return Math.sqrt(variance);
+    }
+}
